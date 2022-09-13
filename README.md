@@ -20,5 +20,7 @@ apiKey:
 - 事例：  
 `HunterX -q 'domain="g.mi.com"'`  
 ![](./img/-q.png)  
+`HunterX -q 'domain.suffix="xx.com" or domain.suffix="xx.com"' -all true`  
+![](./img/-all.png)
 `HunterX -l target.txt`  
 ![](./img/-l.png)
