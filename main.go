@@ -23,16 +23,20 @@ var (
 	batchFilePath string
 	outPath       string
 	qyLine        bool
+	startTime     string
+	endTime       string
 )
 
 //读取命令行输入
 func getFlag() {
 	flag.StringVar(&batchFilePath, "l", "", "批量语法查询全部,查询语法文件txt位置")
 	flag.BoolVar(&searchAll, "all", false, "是否查询所有结果,默认为false,设置true时分页失效,查询所有结果")
-	flag.IntVar(&page, "page", 1, "单语法查询分页：页数")
-	flag.IntVar(&pageSize, "size", 10, "单语法查询分页：每页条数")
+	flag.IntVar(&page, "page", 1, "单语法查询分页：页数。默认：1")
+	flag.IntVar(&pageSize, "size", 10, "单语法查询分页：每页条数。默认：10")
 	flag.StringVar(&query, "q", "", "单语法查询语句")
 	flag.BoolVar(&qyLine, "qyLine", false, "使用企业导出额度进行全部查询，只针对企业账号，默认为false：使用权益积分进行查询")
+	flag.StringVar(&endTime, "eTime", time.Now().Format("2006-01-02"), "结束时间，默认当前时间")
+	flag.StringVar(&startTime, "sTime", time.Now().AddDate(-1, 0, 0).Format("2006-01-02"), "开始时间，默认一年前当前时间")
 	//加载命令行输入参数
 	flag.Parse()
 }
@@ -57,20 +61,22 @@ func main() {
 	}
 	userName := hunterxConfig.UserName
 	apiKey := hunterxConfig.ApiKey
-	//查询用户类型
-	userAccountType, _ := util.SelectAccountType(userName, apiKey)
 	println("Hunter查询中，请勿关闭进程...")
 	//单语法查询
 	if batchFilePath == "" {
 		//全部查询,
 		if searchAll {
-			if userAccountType != "个人账号" && !qyLine {
-				searchAllDataFor(userName, apiKey, query)
+			//查询用户类型
+			//userAccountType, _ := util.SelectAccountType(userName, apiKey)
+			//if userAccountType != "个人账号" && !qyLine {
+			if !qyLine {
+				searchAllDataFor(userName, apiKey, query, startTime, endTime)
 			} else {
-				searchAllData(userName, apiKey, query)
+				searchAllData(userName, apiKey, query, startTime, endTime)
 			}
+
 		} else {
-			searchData(userName, apiKey, query, page, pageSize)
+			searchData(userName, apiKey, query, page, pageSize, startTime, endTime)
 		}
 	} else {
 		_, err := os.Stat(batchFilePath)
@@ -84,10 +90,11 @@ func main() {
 			scanner := bufio.NewScanner(targetfile)
 			for scanner.Scan() {
 				println(scanner.Text())
-				if userAccountType != "个人账号" && !qyLine {
-					searchAllDataFor(userName, apiKey, scanner.Text())
+				//if userAccountType != "个人账号" && !qyLine {
+				if !qyLine {
+					searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime)
 				} else {
-					searchAllData(userName, apiKey, scanner.Text())
+					searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
 				}
 				time.Sleep(time.Second * 3)
 			}
@@ -97,9 +104,9 @@ func main() {
 	}
 }
 
-//分页遍历查询所有结果并导出
-func searchAllDataFor(u string, k string, search string) {
-	searchData, err := util.SearchApi(u, k, search, 1, 1)
+//使用企业导出额度查询所有结果并导出
+func searchAllDataFor(u string, k string, search string, start_time string, end_time string) {
+	searchData, err := util.SearchApi(u, k, search, 1, 1, start_time, end_time)
 	if err != nil {
 		log.Fatalf("searchApi调用失败 #%v", err)
 		return
@@ -115,7 +122,7 @@ func searchAllDataFor(u string, k string, search string) {
 		pageMax := title/100 + 1
 		for j := 1; j <= pageMax; j++ {
 			time.Sleep(time.Second * 2)
-			searchJsonData, err := util.SearchApi(u, k, search, j, 100)
+			searchJsonData, err := util.SearchApi(u, k, search, j, 100, start_time, end_time)
 			if err != nil {
 				log.Fatalf("searchApi调用失败 #%v", err)
 				return
@@ -133,9 +140,9 @@ func searchAllDataFor(u string, k string, search string) {
 }
 
 //分页查询并导出结果
-func searchData(u string, k string, search string, p int, s int) {
+func searchData(u string, k string, search string, p int, s int, start_time string, end_time string) {
 	//分页查询
-	searchResultData, err := util.SearchApi(u, k, search, p, s)
+	searchResultData, err := util.SearchApi(u, k, search, p, s, start_time, end_time)
 	if err != nil {
 		log.Fatalf("searchApi调用失败 #%v", err)
 		return
@@ -144,7 +151,7 @@ func searchData(u string, k string, search string, p int, s int) {
 	defer outFile.Close()
 	util.InitExcel(outFile)
 	for i := 0; i < len(searchResultData.Data.Arr); i++ {
-		util.WriteExcel(outFile, p, i, searchResultData)
+		util.WriteExcel(outFile, 1, i, searchResultData)
 	}
 	outFileName := util.OutFileName(search)
 	err = util.SaveExcel(outFile, outFileName)
@@ -156,9 +163,9 @@ func searchData(u string, k string, search string, p int, s int) {
 
 }
 
-//调用全部查询结构查询所有数据并导出结果
-func searchAllData(u string, k string, search string) {
-	searchData, err := util.SearchAllApi(u, k, search)
+//查询所有并导出结果
+func searchAllData(u string, k string, search string, start_time string, end_time string) {
+	searchData, err := util.SearchAllApi(u, k, search, start_time, end_time)
 	if err != nil {
 		log.Fatalf("批量查询接口调用失败 #%v", err)
 		return
