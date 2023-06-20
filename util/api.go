@@ -12,19 +12,19 @@ import (
 	"time"
 )
 
-func SelectAccountType(userName string, apiKey string) (string, error) {
-	searchJsonData, err := SearchApi(userName, apiKey, "x", 1, 1, time.Now().AddDate(-1, 0, 0).Format("2006-01-02"), time.Now().Format("2006-01-02"))
+func SelectAccountType(apiUrl string, userName string, apiKey string) (string, error) {
+	searchJsonData, err := SearchApi(apiUrl, userName, apiKey, "x", 1, 1, time.Now().AddDate(-1, 0, 0).Format("2006-01-02"), time.Now().Format("2006-01-02"))
 	return searchJsonData.Data.Account_type, err
 }
 
 //hunter查询接口：分页查询
-func SearchApi(userName string, apiKey string, search string, page int, pageSize int, startTime string, endTime string) (obj.SearchObj, error) {
+func SearchApi(apiUrl string, userName string, apiKey string, search string, page int, pageSize int, startTime string, endTime string) (obj.SearchObj, error) {
 	//查询结果对象：Obj
 	var searchJsonData obj.SearchObj
 	//创建client对象
 	client := resty.New()
 	//调用searchApi Get请求接口
-	println("https://hunter.qianxin.com/openApi/search?" +
+	println(apiUrl + "/openApi/search?" +
 		"username=" + userName +
 		"&api-key=" + apiKey +
 		"&search=" + base64UrlEncode(search) +
@@ -32,7 +32,7 @@ func SearchApi(userName string, apiKey string, search string, page int, pageSize
 		"&page_size=" + strconv.Itoa(pageSize) +
 		"&start_time=" + startTime +
 		"&end_time=" + endTime)
-	_, err := client.R().SetResult(&searchJsonData).Get("https://hunter.qianxin.com/openApi/search?" +
+	_, err := client.R().SetResult(&searchJsonData).Get(apiUrl + "/openApi/search?" +
 		"username=" + userName +
 		"&api-key=" + apiKey +
 		"&search=" + base64UrlEncode(search) +
@@ -47,11 +47,11 @@ func SearchApi(userName string, apiKey string, search string, page int, pageSize
 }
 
 //hunter查询接口：所有结果
-func SearchAllApi(userName string, apiKey string, search string, startTime string, endTime string) (obj.SearchObj, error) {
+func SearchAllApi(apiUrl string, userName string, apiKey string, search string, startTime string, endTime string) (obj.SearchObj, error) {
 	//查询结果Obj
 	var searchJsonData obj.SearchObj
 	client := resty.New()
-	_, err := client.R().SetResult(&searchJsonData).Post("https://hunter.qianxin.com/openApi/search/batch?" +
+	_, err := client.R().SetResult(&searchJsonData).Post(apiUrl + "/openApi/search/batch?" +
 		"username=" + userName +
 		"&api-key=" + apiKey +
 		"&search=" + base64UrlEncode(search) +
@@ -64,7 +64,7 @@ func SearchAllApi(userName string, apiKey string, search string, startTime strin
 	c := 1
 check:
 	for true {
-		_, err = client.R().SetResult(&searchJsonData).Get("https://hunter.qianxin.com/openApi/search/batch/" +
+		_, err = client.R().SetResult(&searchJsonData).Get(apiUrl + "/openApi/search/batch/" +
 			strconv.Itoa(searchJsonData.Data.Task_id) +
 			"?username=" + userName +
 			"&api-key=" + apiKey)
