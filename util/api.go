@@ -41,14 +41,13 @@ func SearchApi(apiUrl string, userName string, apiKey string, search string, pag
 		"&start_time=" + startTime +
 		"&end_time=" + endTime)
 	if searchJsonData.Message != "success" {
-		log.Fatalln("searchApi调用错误：" + searchJsonData.Message)
+		log.Println("searchApi调用错误：" + searchJsonData.Message)
 	}
 	return searchJsonData, err
 }
 
 //hunter查询接口：所有结果
 func SearchAllApi(apiUrl string, userName string, apiKey string, search string, startTime string, endTime string) (obj.SearchObj, error) {
-	//查询结果Obj
 	var searchJsonData obj.SearchObj
 	client := resty.New()
 	_, err := client.R().SetResult(&searchJsonData).Post(apiUrl + "/openApi/search/batch?" +
@@ -58,9 +57,10 @@ func SearchAllApi(apiUrl string, userName string, apiKey string, search string, 
 		"&start_time=" + startTime +
 		"&end_time=" + endTime)
 	if searchJsonData.Message != "success" {
-		log.Fatalln("searchApi调用错误提示：" + searchJsonData.Message)
+		log.Println("searchApi调用错误提示：" + searchJsonData.Message)
 		return searchJsonData, err
 	}
+	log.Println("等待系统查询结果生成，请勿关闭......")
 	c := 1
 check:
 	for true {
@@ -69,7 +69,7 @@ check:
 			"?username=" + userName +
 			"&api-key=" + apiKey)
 		if searchJsonData.Message != "success" {
-			log.Fatalln("批量查询任务进度查询接口调用错误提示：" + searchJsonData.Message)
+			log.Println("批量查询任务进度查询接口调用错误提示：" + searchJsonData.Message)
 			return searchJsonData, err
 		}
 		if err != nil {
@@ -89,24 +89,17 @@ check:
 
 func DownloadFile(url string, filePath string) error {
 	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatalf("文件下载接口调用失败 #%v", err)
-		return err
-	}
-	if resp.Body == nil {
-		log.Fatalf("下载文件内容为空 #%v", err)
+	if err != nil || resp.Body == nil {
 		return err
 	}
 	defer resp.Body.Close()
 	outFile, err := os.Create(filePath)
 	if err != nil {
-		log.Fatalf("创建下载文件失败 #%v", err)
 		return err
 	}
 	defer outFile.Close()
 	_, err = io.Copy(outFile, resp.Body)
 	if err != nil {
-		log.Fatalf("下载文件写入本地失败 #%v", err)
 		return err
 	}
 	return nil

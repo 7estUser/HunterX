@@ -12,7 +12,6 @@ func SaveExcel(outFile *excelize.File, fileName string) error {
 
 func InitExcel(outFile *excelize.File) {
 	//格式化excel
-	//outFile := excelize.NewFile()
 	outFile.SetCellValue("Sheet1", "A1", "url")
 	outFile.SetCellValue("Sheet1", "B1", "资产标签")
 	outFile.SetCellValue("Sheet1", "C1", "IP")
