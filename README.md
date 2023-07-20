@@ -18,7 +18,7 @@ userName:
 #hunter_apiKey
 apiKey: 
 ```  
-⚠️注意：windows 命令行下需要特别注意双引号转义eg：fofax.exe -q domain=\"a.com\"
+⚠️注意：windows 命令行下需要特别注意双引号转义 eg：fofax.exe -q domain=\"a.com\"
 - 参数：
 ![](./img/-h.png)
 - 查询：  
@@ -27,7 +27,7 @@ apiKey:
 ![](./img/-q.png)  
 文件输出名称为查询语句+四位随机数字符，如果存在不同环境"解析问题，文件命名会使用4位随机字符+4位随机字符，存放当前目录。
 - 查询所有并使用内网环境
-`HunterX -q domain="a.com" -inc -all`  
+`HunterX -q domain=\"a.com\" -inc -all`  
 ![](./img/-inc.png)  
 把每次分页的接口调用打印了出来，防止出现问题中断时可以定位查询跑到了哪里。然后可以根据分页来查询后面的。  
 - 批量查询
