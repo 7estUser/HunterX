@@ -18,7 +18,8 @@ userName:
 #hunter_apiKey
 apiKey: 
 ```  
-⚠️注意：windows 命令行下需要特别注意双引号转义 eg：fofax.exe -q domain=\"a.com\"
+⚠️注意：windows 命令行下需要特别注意双引号转义 eg：fofax.exe -q domain=\\\"a.com\\\"  
+⚠️注意：hunter原因，只允许查看前1W条数据，所以 -all查询时如果总数据超过1W，则只查询前1W条数据  
 - 参数:  
 ![](./img/-h.png)
 - 查询:  
