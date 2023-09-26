@@ -17,9 +17,12 @@ func OutFileName(query string) string {
 	endIndex := strings.Index(query[startIndex+2:], "\"")
 	randomString := generateRandomString(4)
 	if startIndex != -1 && endIndex != -1 && endIndex > startIndex {
-		return query[startIndex+2:startIndex+2+endIndex] + "-" + randomString
+		if endIndex > 10 {
+			return query[startIndex+2:startIndex+2+10] + "-" + randomString + ".xlsx"
+		}
+		return query[startIndex+2:startIndex+2+endIndex] + "-" + randomString + ".xlsx"
 	} else {
-		return randomString + "-" + randomString
+		return randomString + "-" + randomString + ".xlsx"
 	}
 }
 

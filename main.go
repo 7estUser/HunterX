@@ -4,9 +4,10 @@ import (
 	"HunterX/obj"
 	"HunterX/util"
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
-	"github.com/xuri/excelize/v2"
+	"github.com/tealeg/xlsx"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
@@ -27,6 +28,7 @@ var (
 	startTime     string
 	endTime       string
 	isInc         bool
+	isHB          bool
 	apiUrl        = "https://hunter.qianxin.com"
 )
 
@@ -41,6 +43,7 @@ func getFlag() {
 	flag.StringVar(&endTime, "eTime", time.Now().Format("2006-01-02"), "结束时间，默认当前时间")
 	flag.StringVar(&startTime, "sTime", time.Now().AddDate(-1, 0, 0).Format("2006-01-02"), "开始时间，默认一年前当前时间")
 	flag.BoolVar(&isInc, "inc", false, "使用内网接口")
+	flag.BoolVar(&isHB, "hb", false, "批量查询结果是否合并为同一文件。合并：true，默认不合并：false")
 	//加载命令行输入参数
 	flag.Parse()
 }
@@ -55,7 +58,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("读取配置文件失败 #%v", err)
 	}
-	//加在用户查询密钥
+	//读取用户查询密钥
 	var hunterxConfig obj.Config
 	err = yaml.Unmarshal(optionFile, &hunterxConfig)
 	if err != nil {
@@ -74,14 +77,35 @@ func main() {
 		if searchAll {
 			//使用个人账号
 			if !qyLine {
+				//创建导出Excel
+				outFile := xlsx.NewFile()
+				//创建结果导出文件随即文件名
+				outFileName := util.OutFileName(query)
+				util.InitExcel(outFile)
+				defer outFile.Save(outFileName)
 				///分页遍历查询所有
-				searchAllDataFor(userName, apiKey, query, startTime, endTime)
+				searchErr := searchAllDataFor(userName, apiKey, query, startTime, endTime, outFile)
+				if searchErr != nil {
+					log.Fatalf("searchApi调用失败: #%v", searchErr)
+					return
+				}
 			} else /*使用企业账号*/ {
 				//通过导出接口下载所有数据
 				searchAllData(userName, apiKey, query, startTime, endTime)
 			}
 		} else /*分页查询*/ {
-			searchData(userName, apiKey, query, page, pageSize, startTime, endTime)
+			searchResultData, searchErr := searchData(userName, apiKey, query, page, pageSize, startTime, endTime)
+			if searchErr == nil {
+				//创建导出Excel
+				outFile := xlsx.NewFile()
+				//创建结果导出文件随即文件名
+				outFileName := util.OutFileName(query)
+				util.InitExcel(outFile)
+				//查询结果导出
+				util.WriteExcelNew(outFile, searchResultData)
+				outFile.Save(outFileName)
+				log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".xlsx")
+			}
 		}
 	} else /*批量查询*/ {
 		_, err := os.Stat(batchFilePath)
@@ -92,14 +116,37 @@ func main() {
 				log.Fatalf("批量查询目标文件打开失败 #%v", openfIleErr)
 			}
 			scanner := bufio.NewScanner(targetfile)
-			for scanner.Scan() {
-				println(scanner.Text())
-				if !qyLine {
-					searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime)
-				} else {
-					searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
+			if isHB {
+				//创建导出Excel
+				outFile := xlsx.NewFile()
+				util.InitExcel(outFile)
+				defer outFile.Save("批量查询汇总.xlsx")
+				for scanner.Scan() {
+					println("开始查询：" + scanner.Text())
+					if !qyLine {
+						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile)
+					} else {
+						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
+					}
+					time.Sleep(time.Second * 3)
 				}
-				time.Sleep(time.Second * 3)
+
+			} else {
+				for scanner.Scan() {
+					println("开始查询：" + scanner.Text())
+					//创建导出Excel
+					outFile := xlsx.NewFile()
+					//创建结果导出文件随即文件名
+					outFileName := util.OutFileName(scanner.Text())
+					util.InitExcel(outFile)
+					defer outFile.Save(outFileName)
+					if !qyLine {
+						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile)
+					} else {
+						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
+					}
+					time.Sleep(time.Second * 3)
+				}
 			}
 		} else {
 			log.Fatalf("批量查询语法文件 " + batchFilePath + " 不存在，请检查")
@@ -108,63 +155,71 @@ func main() {
 }
 
 //分页遍历查询所有数据并导出
-func searchAllDataFor(userName string, apiKey string, search string, start_time string, end_time string) {
+func searchAllDataFor(userName string, apiKey string, search string, start_time string, end_time string, outFile *xlsx.File) error {
 	//通过查询一条数据获取本次查询数据总数量
 	searchData, err := util.SearchApi(apiUrl, userName, apiKey, search, 1, 1, start_time, end_time)
 	if err != nil {
 		log.Fatalf("searchApi调用失败 #%v", err)
+		return err
 	}
 	if searchData.Code == 200 && strings.EqualFold("success", searchData.Message) {
-		//导出结果到excel
-		outFile := excelize.NewFile()
-		defer outFile.Close()
-		util.InitExcel(outFile)
 		//查询数据总数量
 		title := searchData.Data.Total
 		if title > 10000 {
 			fmt.Printf("本次查询总条数为：%d，超过1w条限制，仅查询前10000条数据\n", title)
 			title = 10000
 		}
-		ourFileName := util.OutFileName(search)
-		defer util.SaveExcel(outFile, ourFileName)
+		//计算每页100条总页数
 		pageMax := (title-1)/100 + 1
+		//每页100条进行遍历查询
 		for j := 1; j <= pageMax; j++ {
 			time.Sleep(time.Second * 2)
 			searchJsonData, _ := util.SearchApi(apiUrl, userName, apiKey, search, j, 100, start_time, end_time)
 			if err != nil {
-				fmt.Printf("searchApi调用失败 #%v，已成功查询结果保存到文件：%v", err, ourFileName)
-				return
+				return err
 			}
-			for i := 0; i < len(searchJsonData.Data.Arr); i++ {
-				util.WriteExcel(outFile, j, i, searchJsonData)
-			}
+			//导出结果
+			util.WriteExcelNew(outFile, searchJsonData)
 		}
-		fmt.Printf("查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + ";" + searchData.Data.Rest_quota + "; 结果保存到文件：" + ourFileName + ".xlsx")
+		fmt.Printf(search + "查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + ";" + searchData.Data.Rest_quota)
+		return nil
+	} else {
+		return errors.New(searchData.Message)
 	}
+
 }
 
-//分页查询并导出结果
-func searchData(userName string, apiKey string, search string, p int, s int, start_time string, end_time string) {
+//分页查询指定条数并导出结果
+func searchData(userName string, apiKey string, search string, p int, s int, start_time string, end_time string) (searchJsonData obj.SearchObj, err error) {
+	////分页查询
+	//searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time)
+	//if err != nil {
+	//	log.Fatalf("searchApi调用失败 #%v", err)
+	//}
+	//outFile := excelize.NewFile()
+	//defer outFile.Close()
+	//util.InitExcel(outFile)
+	//for i := 0; i < len(searchResultData.Data.Arr); i++ {
+	//	util.WriteExcel(outFile, 1, i, searchResultData)
+	//}
+	//outFileName := util.OutFileName(search)
+	//err = util.SaveExcel(outFile, outFileName)
+	//if err != nil {
+	//	log.Fatalf("查询结果保存到文件失败 #%v", err)
+	//}
+	//log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".xlsx")
+
+	//新版本
 	//分页查询
 	searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time)
 	if err != nil {
 		log.Fatalf("searchApi调用失败 #%v", err)
+		return searchJsonData, err
 	}
-	outFile := excelize.NewFile()
-	defer outFile.Close()
-	util.InitExcel(outFile)
-	for i := 0; i < len(searchResultData.Data.Arr); i++ {
-		util.WriteExcel(outFile, 1, i, searchResultData)
-	}
-	outFileName := util.OutFileName(search)
-	err = util.SaveExcel(outFile, outFileName)
-	if err != nil {
-		log.Fatalf("查询结果保存到文件失败 #%v", err)
-	}
-	log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".xlsx")
+	return searchResultData, nil
 }
 
-//查询所有并导出结果
+//通过接口查询所有并导出结果
 func searchAllData(userName string, apiKey string, search string, start_time string, end_time string) {
 	searchData, err := util.SearchAllApi(apiUrl, userName, apiKey, search, start_time, end_time)
 	if err != nil {

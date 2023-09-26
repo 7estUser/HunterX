@@ -2,61 +2,63 @@ package util
 
 import (
 	"HunterX/obj"
-	"github.com/xuri/excelize/v2"
+	"github.com/tealeg/xlsx"
 	"strconv"
 )
 
-func SaveExcel(outFile *excelize.File, fileName string) error {
-	return outFile.SaveAs(fileName + ".xlsx")
+//格式化excel
+func InitExcel(outFile *xlsx.File) {
+	sheet, _ := outFile.AddSheet("Sheet1")
+	titleRow := sheet.AddRow()
+	titleRow.AddCell().Value = "url"
+	titleRow.AddCell().Value = "资产标签"
+	titleRow.AddCell().Value = "IP"
+	titleRow.AddCell().Value = "IP标签"
+	titleRow.AddCell().Value = "端口"
+	titleRow.AddCell().Value = "网站标题"
+	titleRow.AddCell().Value = "域名"
+	titleRow.AddCell().Value = "高危协议"
+	titleRow.AddCell().Value = "协议"
+	titleRow.AddCell().Value = "通讯协议"
+	titleRow.AddCell().Value = "网站状态码"
+	titleRow.AddCell().Value = "应用/组件"
+	titleRow.AddCell().Value = "操作系统"
+	titleRow.AddCell().Value = "备案单位"
+	titleRow.AddCell().Value = "备案号"
+	titleRow.AddCell().Value = "国家"
+	titleRow.AddCell().Value = "省份"
+	titleRow.AddCell().Value = "市区"
+	titleRow.AddCell().Value = "探查时间"
+	titleRow.AddCell().Value = "Web资产"
+	titleRow.AddCell().Value = "运营商"
+	titleRow.AddCell().Value = "注册机构"
 }
 
-func InitExcel(outFile *excelize.File) {
-	//格式化excel
-	outFile.SetCellValue("Sheet1", "A1", "url")
-	outFile.SetCellValue("Sheet1", "B1", "资产标签")
-	outFile.SetCellValue("Sheet1", "C1", "IP")
-	outFile.SetCellValue("Sheet1", "D1", "IP标签")
-	outFile.SetCellValue("Sheet1", "E1", "端口")
-	outFile.SetCellValue("Sheet1", "F1", "网站标题")
-	outFile.SetCellValue("Sheet1", "G1", "域名")
-	outFile.SetCellValue("Sheet1", "H1", "高危协议")
-	outFile.SetCellValue("Sheet1", "I1", "协议")
-	outFile.SetCellValue("Sheet1", "J1", "通讯协议")
-	outFile.SetCellValue("Sheet1", "K1", "网站状态码")
-	outFile.SetCellValue("Sheet1", "L1", "应用/组件")
-	outFile.SetCellValue("Sheet1", "M1", "操作系统")
-	outFile.SetCellValue("Sheet1", "N1", "备案单位")
-	outFile.SetCellValue("Sheet1", "O1", "备案号")
-	outFile.SetCellValue("Sheet1", "P1", "国家")
-	outFile.SetCellValue("Sheet1", "Q1", "省份")
-	outFile.SetCellValue("Sheet1", "R1", "市区")
-	outFile.SetCellValue("Sheet1", "S1", "探查时间")
-	outFile.SetCellValue("Sheet1", "T1", "Web资产")
-	outFile.SetCellValue("Sheet1", "U1", "运营商")
-	outFile.SetCellValue("Sheet1", "V1", "注册机构")
-}
-
-func WriteExcel(outFile *excelize.File, pageNum int, linNum int, searchJsonData obj.SearchObj) {
-	outFile.SetCellValue("Sheet1", "A"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Url)
-	outFile.SetCellValue("Sheet1", "B"+strconv.Itoa((pageNum-1)*100+linNum+2), "")
-	outFile.SetCellValue("Sheet1", "C"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Ip)
-	outFile.SetCellValue("Sheet1", "D"+strconv.Itoa((pageNum-1)*100+linNum+2), "")
-	outFile.SetCellValue("Sheet1", "E"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Port)
-	outFile.SetCellValue("Sheet1", "F"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Web_title)
-	outFile.SetCellValue("Sheet1", "G"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Domain)
-	outFile.SetCellValue("Sheet1", "H"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Is_risk_protocol)
-	outFile.SetCellValue("Sheet1", "I"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Protocol)
-	outFile.SetCellValue("Sheet1", "J"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Base_protocol)
-	outFile.SetCellValue("Sheet1", "K"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Status_code)
-	outFile.SetCellValue("Sheet1", "L"+strconv.Itoa((pageNum-1)*100+linNum+2), "")
-	outFile.SetCellValue("Sheet1", "M"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Os)
-	outFile.SetCellValue("Sheet1", "N"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Company)
-	outFile.SetCellValue("Sheet1", "O"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Number)
-	outFile.SetCellValue("Sheet1", "P"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Country)
-	outFile.SetCellValue("Sheet1", "Q"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].City)
-	outFile.SetCellValue("Sheet1", "R"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Province)
-	outFile.SetCellValue("Sheet1", "S"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Updated_at)
-	outFile.SetCellValue("Sheet1", "T"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Is_web)
-	outFile.SetCellValue("Sheet1", "U"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].Isp)
-	outFile.SetCellValue("Sheet1", "V"+strconv.Itoa((pageNum-1)*100+linNum+2), searchJsonData.Data.Arr[linNum].As_org)
+func WriteExcelNew(outFile *xlsx.File, searchJsonData obj.SearchObj) {
+	sheet := outFile.Sheets[0]
+	for i := 0; i < len(searchJsonData.Data.Arr); i++ {
+		row := sheet.AddRow()
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Url
+		row.AddCell().Value = ""
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Ip
+		row.AddCell().Value = ""
+		row.AddCell().Value = strconv.Itoa(searchJsonData.Data.Arr[i].Port)
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Web_title
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Domain
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Is_risk_protocol
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Protocol
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Base_protocol
+		row.AddCell().Value = strconv.Itoa(searchJsonData.Data.Arr[i].Status_code)
+		row.AddCell().Value = ""
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Os
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Company
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Number
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Country
+		row.AddCell().Value = searchJsonData.Data.Arr[i].City
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Province
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Updated_at
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Is_web
+		row.AddCell().Value = searchJsonData.Data.Arr[i].Isp
+		row.AddCell().Value = searchJsonData.Data.Arr[i].As_org
+	}
 }

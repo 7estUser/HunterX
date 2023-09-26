@@ -4,8 +4,8 @@ go 1.17
 
 require (
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/tealeg/xlsx v1.0.5
 	github.com/xuri/excelize/v2 v2.6.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
 
