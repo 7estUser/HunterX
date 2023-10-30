@@ -24,14 +24,6 @@ func SearchApi(apiUrl string, userName string, apiKey string, search string, pag
 	//创建client对象
 	client := resty.New()
 	//调用searchApi Get请求接口
-	println(apiUrl + "/openApi/search?" +
-		"username=" + userName +
-		"&api-key=" + apiKey +
-		"&search=" + base64UrlEncode(search) +
-		"&page=" + strconv.Itoa(page) +
-		"&page_size=" + strconv.Itoa(pageSize) +
-		"&start_time=" + startTime +
-		"&end_time=" + endTime)
 	_, err := client.R().SetResult(&searchJsonData).Get(apiUrl + "/openApi/search?" +
 		"username=" + userName +
 		"&api-key=" + apiKey +

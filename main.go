@@ -85,10 +85,12 @@ func main() {
 				defer outFile.Save(outFileName)
 				///分页遍历查询所有
 				searchErr := searchAllDataFor(userName, apiKey, query, startTime, endTime, outFile)
+				log.Print("结果保存到文件：" + outFileName)
 				if searchErr != nil {
-					log.Fatalf("searchApi调用失败: #%v", searchErr)
+					log.Println("searchApi调用失败: #%v", searchErr)
 					return
 				}
+
 			} else /*使用企业账号*/ {
 				//通过导出接口下载所有数据
 				searchAllData(userName, apiKey, query, startTime, endTime)
@@ -101,10 +103,10 @@ func main() {
 				//创建结果导出文件随即文件名
 				outFileName := util.OutFileName(query)
 				util.InitExcel(outFile)
+				defer outFile.Save(outFileName)
 				//查询结果导出
 				util.WriteExcelNew(outFile, searchResultData)
-				outFile.Save(outFileName)
-				log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".xlsx")
+				log.Println("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName)
 			}
 		}
 	} else /*批量查询*/ {
@@ -159,7 +161,7 @@ func searchAllDataFor(userName string, apiKey string, search string, start_time 
 	//通过查询一条数据获取本次查询数据总数量
 	searchData, err := util.SearchApi(apiUrl, userName, apiKey, search, 1, 1, start_time, end_time)
 	if err != nil {
-		log.Fatalf("searchApi调用失败 #%v", err)
+		log.Println("searchApi调用失败 #%v", err)
 		return err
 	}
 	if searchData.Code == 200 && strings.EqualFold("success", searchData.Message) {
@@ -181,7 +183,7 @@ func searchAllDataFor(userName string, apiKey string, search string, start_time 
 			//导出结果
 			util.WriteExcelNew(outFile, searchJsonData)
 		}
-		fmt.Printf(search + "查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + ";" + searchData.Data.Rest_quota)
+		log.Print(query + "查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + "; " + searchData.Data.Consume_quota + "; " + searchData.Data.Rest_quota + "; ")
 		return nil
 	} else {
 		return errors.New(searchData.Message)
@@ -191,29 +193,10 @@ func searchAllDataFor(userName string, apiKey string, search string, start_time 
 
 //分页查询指定条数并导出结果
 func searchData(userName string, apiKey string, search string, p int, s int, start_time string, end_time string) (searchJsonData obj.SearchObj, err error) {
-	////分页查询
-	//searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time)
-	//if err != nil {
-	//	log.Fatalf("searchApi调用失败 #%v", err)
-	//}
-	//outFile := excelize.NewFile()
-	//defer outFile.Close()
-	//util.InitExcel(outFile)
-	//for i := 0; i < len(searchResultData.Data.Arr); i++ {
-	//	util.WriteExcel(outFile, 1, i, searchResultData)
-	//}
-	//outFileName := util.OutFileName(search)
-	//err = util.SaveExcel(outFile, outFileName)
-	//if err != nil {
-	//	log.Fatalf("查询结果保存到文件失败 #%v", err)
-	//}
-	//log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchResultData.Data.Total) + "; " + searchResultData.Data.Consume_quota + "; " + searchResultData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".xlsx")
-
-	//新版本
 	//分页查询
 	searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time)
 	if err != nil {
-		log.Fatalf("searchApi调用失败 #%v", err)
+		log.Println("searchApi调用失败 #%v", err)
 		return searchJsonData, err
 	}
 	return searchResultData, nil
@@ -234,6 +217,6 @@ func searchAllData(userName string, apiKey string, search string, start_time str
 		if err != nil {
 			log.Fatalf("全部查询结果文件下载失败 #%v", err)
 		}
-		log.Fatalf("查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + "; " + searchData.Data.Consume_quota + "; " + searchData.Data.Rest_quota + "; 结果保存到文件：" + outFileName + ".csv")
+		println("查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + "; " + searchData.Data.Consume_quota + "; " + searchData.Data.Rest_quota + "; 结果保存到文件：" + outFileName)
 	}
 }
