@@ -29,10 +29,11 @@ var (
 	endTime       string
 	isInc         bool
 	isHB          bool
+	proxyMe       string
 	apiUrl        = "https://hunter.qianxin.com"
 )
 
-//读取命令行输入
+// 读取命令行输入
 func getFlag() {
 	flag.StringVar(&batchFilePath, "l", "", "批量语法查询全部,查询语法文件txt位置")
 	flag.BoolVar(&searchAll, "all", false, "查询所有结果")
@@ -44,13 +45,15 @@ func getFlag() {
 	flag.StringVar(&startTime, "sTime", time.Now().AddDate(-1, 0, 0).Format("2006-01-02"), "开始时间，默认一年前当前时间")
 	flag.BoolVar(&isInc, "inc", false, "使用内网接口")
 	flag.BoolVar(&isHB, "hb", false, "批量查询结果是否合并为同一文件。合并：true，默认不合并：false")
+	flag.StringVar(&proxyMe, "p", "", "使用代理查询，socks5/http。eg: http://user:pass@127.0.0.1:8080")
 	//加载命令行输入参数
 	flag.Parse()
 }
 
 func main() {
-	println(" _   _             _          __  __\n| | | |_   _ _ __ | |_ ___ _ _\\ \\/ /\n| |_| | | | | '_ \\| __/ _ \\ '__\\  / \n|  _  | |_| | | | | ||  __/ |  /  \\ \n|_| |_|\\__,_|_| |_|\\__\\___|_| /_/\\_\\\n                           v1.3 from:7estUser\n ")
+	println(" _   _             _          __  __\n| | | |_   _ _ __ | |_ ___ _ _\\ \\/ /\n| |_| | | | | '_ \\| __/ _ \\ '__\\  / \n|  _  | |_| | | | | ||  __/ |  /  \\ \n|_| |_|\\__,_|_| |_|\\__\\___|_| /_/\\_\\\n                           v1.4 from:7estUser\n ")
 	getFlag()
+	//log.Fatalf("111", proxyMe)
 	if query == "" && batchFilePath == "" {
 		log.Fatalf("单语法查询 -q 参数为必须参数，不能为空")
 	}
@@ -84,19 +87,19 @@ func main() {
 				util.InitExcel(outFile)
 				defer outFile.Save(outFileName)
 				///分页遍历查询所有
-				searchErr := searchAllDataFor(userName, apiKey, query, startTime, endTime, outFile)
+				searchErr := searchAllDataFor(userName, apiKey, query, startTime, endTime, outFile, proxyMe)
 				log.Print("结果保存到文件：" + outFileName)
 				if searchErr != nil {
-					log.Println("searchApi调用失败: #%v", searchErr)
+					log.Printf("searchApi调用失败: %v", searchErr)
 					return
 				}
 
 			} else /*使用企业账号*/ {
 				//通过导出接口下载所有数据
-				searchAllData(userName, apiKey, query, startTime, endTime)
+				searchAllData(userName, apiKey, query, startTime, endTime, proxyMe)
 			}
 		} else /*分页查询*/ {
-			searchResultData, searchErr := searchData(userName, apiKey, query, page, pageSize, startTime, endTime)
+			searchResultData, searchErr := searchData(userName, apiKey, query, page, pageSize, startTime, endTime, proxyMe)
 			if searchErr == nil {
 				//创建导出Excel
 				outFile := xlsx.NewFile()
@@ -126,9 +129,9 @@ func main() {
 				for scanner.Scan() {
 					println("开始查询：" + scanner.Text())
 					if !qyLine {
-						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile)
+						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile, proxyMe)
 					} else {
-						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
+						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime, proxyMe)
 					}
 					time.Sleep(time.Second * 3)
 				}
@@ -143,9 +146,9 @@ func main() {
 					util.InitExcel(outFile)
 					defer outFile.Save(outFileName)
 					if !qyLine {
-						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile)
+						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile, proxyMe)
 					} else {
-						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime)
+						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime, proxyMe)
 					}
 					time.Sleep(time.Second * 3)
 				}
@@ -156,12 +159,12 @@ func main() {
 	}
 }
 
-//分页遍历查询所有数据并导出
-func searchAllDataFor(userName string, apiKey string, search string, start_time string, end_time string, outFile *xlsx.File) error {
+// 分页遍历查询所有数据并导出
+func searchAllDataFor(userName string, apiKey string, search string, start_time string, end_time string, outFile *xlsx.File, proxyMe string) error {
 	//通过查询一条数据获取本次查询数据总数量
-	searchData, err := util.SearchApi(apiUrl, userName, apiKey, search, 1, 1, start_time, end_time)
+	searchData, err := util.SearchApi(apiUrl, userName, apiKey, search, 1, 1, start_time, end_time, proxyMe)
 	if err != nil {
-		log.Println("searchApi调用失败 #%v", err)
+		log.Printf("searchApi调用失败 %v", err)
 		return err
 	}
 	if searchData.Code == 200 && strings.EqualFold("success", searchData.Message) {
@@ -176,7 +179,7 @@ func searchAllDataFor(userName string, apiKey string, search string, start_time 
 		//每页100条进行遍历查询
 		for j := 1; j <= pageMax; j++ {
 			time.Sleep(time.Second * 2)
-			searchJsonData, _ := util.SearchApi(apiUrl, userName, apiKey, search, j, 100, start_time, end_time)
+			searchJsonData, _ := util.SearchApi(apiUrl, userName, apiKey, search, j, 100, start_time, end_time, proxyMe)
 			if err != nil {
 				return err
 			}
@@ -191,20 +194,20 @@ func searchAllDataFor(userName string, apiKey string, search string, start_time 
 
 }
 
-//分页查询指定条数并导出结果
-func searchData(userName string, apiKey string, search string, p int, s int, start_time string, end_time string) (searchJsonData obj.SearchObj, err error) {
+// 分页查询指定条数并导出结果
+func searchData(userName string, apiKey string, search string, p int, s int, start_time string, end_time string, proxyMe string) (searchJsonData obj.SearchObj, err error) {
 	//分页查询
-	searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time)
+	searchResultData, err := util.SearchApi(apiUrl, userName, apiKey, search, p, s, start_time, end_time, proxyMe)
 	if err != nil {
-		log.Println("searchApi调用失败 #%v", err)
+		log.Printf("searchApi调用失败  %v", err)
 		return searchJsonData, err
 	}
 	return searchResultData, nil
 }
 
-//通过接口查询所有并导出结果
-func searchAllData(userName string, apiKey string, search string, start_time string, end_time string) {
-	searchData, err := util.SearchAllApi(apiUrl, userName, apiKey, search, start_time, end_time)
+// 通过接口查询所有并导出结果
+func searchAllData(userName string, apiKey string, search string, start_time string, end_time string, proxyMe string) {
+	searchData, err := util.SearchAllApi(apiUrl, userName, apiKey, search, start_time, end_time, proxyMe)
 	if err != nil {
 		log.Fatalf("批量查询接口调用失败 #%v", err)
 	}
