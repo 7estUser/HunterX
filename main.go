@@ -51,7 +51,7 @@ func getFlag() {
 }
 
 func main() {
-	println(" _   _             _          __  __\n| | | |_   _ _ __ | |_ ___ _ _\\ \\/ /\n| |_| | | | | '_ \\| __/ _ \\ '__\\  / \n|  _  | |_| | | | | ||  __/ |  /  \\ \n|_| |_|\\__,_|_| |_|\\__\\___|_| /_/\\_\\\n                           v1.4 from:7estUser\n ")
+	println(" _   _             _          __  __\n| | | |_   _ _ __ | |_ ___ _ _\\ \\/ /\n| |_| | | | | '_ \\| __/ _ \\ '__\\  / \n|  _  | |_| | | | | ||  __/ |  /  \\ \n|_| |_|\\__,_|_| |_|\\__\\___|_| /_/\\_\\\n                           v1.4.1 from:7estUser\n ")
 	getFlag()
 	//log.Fatalf("111", proxyMe)
 	if query == "" && batchFilePath == "" {
@@ -129,6 +129,7 @@ func main() {
 				for scanner.Scan() {
 					println("开始查询：" + scanner.Text())
 					if !qyLine {
+						//println("开始查询保存的文件名：" + scanner.Text())
 						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile, proxyMe)
 					} else {
 						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime, proxyMe)
@@ -144,12 +145,14 @@ func main() {
 					//创建结果导出文件随即文件名
 					outFileName := util.OutFileName(scanner.Text())
 					util.InitExcel(outFile)
-					defer outFile.Save(outFileName)
+
 					if !qyLine {
+						println("开始查询保存的文件名：" + outFileName)
 						searchAllDataFor(userName, apiKey, scanner.Text(), startTime, endTime, outFile, proxyMe)
 					} else {
 						searchAllData(userName, apiKey, scanner.Text(), startTime, endTime, proxyMe)
 					}
+					outFile.Save(outFileName)
 					time.Sleep(time.Second * 3)
 				}
 			}
@@ -201,6 +204,7 @@ func searchData(userName string, apiKey string, search string, p int, s int, sta
 	if err != nil {
 		log.Printf("searchApi调用失败  %v", err)
 		return searchJsonData, err
+		os.Exit(1)
 	}
 	return searchResultData, nil
 }
@@ -210,15 +214,17 @@ func searchAllData(userName string, apiKey string, search string, start_time str
 	searchData, err := util.SearchAllApi(apiUrl, userName, apiKey, search, start_time, end_time, proxyMe)
 	if err != nil {
 		log.Fatalf("批量查询接口调用失败 #%v", err)
+		os.Exit(1)
 	}
 	if strconv.Itoa(searchData.Data.Task_id) != "" && searchData.Data.Progress == "100%" {
 		downloadUrl := "https://inner.hunter.qianxin-inc.cn/openApi/search/download/" + strconv.Itoa(searchData.Data.Task_id) +
 			"?username=" + userName +
 			"&api-key=" + apiKey
 		outFileName := util.OutFileName(search)
-		err = util.DownloadFile(downloadUrl, outFileName+".csv")
+		err = util.DownloadFile(downloadUrl, outFileName+".csv", proxyMe)
 		if err != nil {
 			log.Fatalf("全部查询结果文件下载失败 #%v", err)
+			os.Exit(1)
 		}
 		println("查询完成！结果总数量：" + strconv.Itoa(searchData.Data.Total) + "; " + searchData.Data.Consume_quota + "; " + searchData.Data.Rest_quota + "; 结果保存到文件：" + outFileName)
 	}
