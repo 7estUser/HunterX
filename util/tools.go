@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -24,13 +25,22 @@ func OutFileName(query string) string {
 	endIndex := strings.Index(query[startIndex+2:], "\"")
 	randomString := generateRandomString(4)
 	if startIndex != -1 && endIndex != -1 && endIndex > startIndex {
-		if endIndex > 10 {
-			return query[startIndex+2:startIndex+2+9] + "-" + randomString + ".xlsx"
+		if endIndex > 20 {
+			return cleanFileName(query[startIndex+2:startIndex+2+10]) + "-" + randomString + ".xlsx"
+		} else {
+			return cleanFileName(query[startIndex+2:startIndex+2+endIndex]) + "-" + randomString + ".xlsx"
 		}
-		return query[startIndex+2:startIndex+2+endIndex] + "-" + randomString + ".xlsx"
 	} else {
 		return randomString + "-" + randomString + ".xlsx"
 	}
+}
+
+func cleanFileName(outFileName string) string {
+	// 定义一个正则表达式来匹配所有非字母数字字符以及一些常见的非法文件名字符
+	re := regexp.MustCompile(`[^a-zA-Z0-9._\-]+`)
+	// 使用正则表达式进行替换
+	cleanedName := re.ReplaceAllString(outFileName, "-")
+	return cleanedName
 }
 
 // 生成指定长度的随机字符数

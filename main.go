@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -57,7 +58,13 @@ func main() {
 	if query == "" && batchFilePath == "" {
 		log.Fatalf("单语法查询 -q 参数为必须参数，不能为空")
 	}
-	optionFile, err := ioutil.ReadFile("./hunterx.yaml")
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	configPath := filepath.Join(exPath, "hunterx.yaml")
+	optionFile, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("读取配置文件失败 #%v", err)
 	}
